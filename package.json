@@ -1,0 +1,13 @@
+{
+  "name": "mllm",
+  "version": "0.1.0",
+  "description": "Local Multi-Agent Model Platform",
+  "scripts": {
+    "tauri": "tauri",
+    "build:sidecar": "pyinstaller --noconfirm --clean --onefile --name \"mllm-backend-$(rustc -Vv | grep 'host:' | awk '{print $2}')\" --distpath src-tauri/binaries backend/ipc/server.py",
+    "build:release": "npm run build:sidecar && npx tauri build"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.0.0"
+  }
+}

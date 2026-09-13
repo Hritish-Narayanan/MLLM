@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MLLM — Local Multi-Agent Platform</title>
+    <link rel="stylesheet" href="styles/main.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Header -->
+        <header id="app-header">
+            <div class="header-left">
+                <h1 class="app-title">MLLM</h1>
+                <span class="app-subtitle">Local Multi-Agent Platform</span>
+            </div>
+            <div class="header-right">
+                <div id="runtime-indicator" class="status-indicator offline">
+                    <span class="status-dot"></span>
+                    <span id="runtime-status-text">No runtime</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main id="main-content">
+            <!-- Setup View (shown first) -->
+            <section id="view-setup" class="view active">
+                <div class="setup-container">
+                    <h2>System Check</h2>
+                    <div id="system-info" class="info-panel">
+                        <p class="info-loading">Detecting hardware...</p>
+                    </div>
+
+                    <h2>Select Runtime</h2>
+                    <div id="runtime-list" class="runtime-options">
+                        <!-- Populated by JS -->
+                    </div>
+
+                    <div id="setup-actions" class="actions" style="display: none;">
+                        <button id="btn-connect" class="btn btn-primary" disabled>
+                            Connect to Runtime
+                        </button>
+                    </div>
+
+                    <div id="setup-status" class="status-message" style="display: none;"></div>
+                </div>
+            </section>
+
+            <!-- Model View -->
+            <section id="view-model" class="view">
+                <div class="model-container">
+                    <h2>Load Model</h2>
+                    <div class="input-group">
+                        <label for="model-input">Model identifier (HF Repo, Local Folder, or Tag)</label>
+                        <input type="text" id="model-input" 
+                               placeholder="e.g. google/gemma-4-E4B, gemma3:4b, or /path/to/weights"
+                               spellcheck="false">
+                        <span class="input-hint">Hugging Face ID (e.g. google/gemma-4-E4B), Ollama tag (e.g. gemma3:4b), or local directory</span>
+                    </div>
+                    <div class="actions">
+                        <button id="btn-load-model" class="btn btn-primary">Load Model</button>
+                    </div>
+                    <div id="model-status" class="status-message" style="display: none;"></div>
+                    <div id="model-info-panel" class="info-panel" style="display: none;"></div>
+                </div>
+            </section>
+
+            <!-- Chat View -->
+            <section id="view-chat" class="view">
+                <div class="chat-container">
+                    <!-- Agent config bar -->
+                    <div class="chat-toolbar">
+                        <div class="toolbar-group">
+                            <label for="agent-count">Agents</label>
+                            <select id="agent-count">
+                                <option value="1" selected>1</option>
+                                <option value="2">2</option>
+                                <option value="3">3</option>
+                            </select>
+                        </div>
+                        <div class="toolbar-group">
+                            <label for="strategy-select">Strategy</label>
+                            <select id="strategy-select">
+                                <option value="single" selected>Single</option>
+                                <option value="independent">Independent</option>
+                                <option value="solver_critic">Solver → Critic</option>
+                                <option value="debate">Debate</option>
+                            </select>
+                        </div>
+                        <div class="toolbar-group">
+                            <span id="model-badge" class="badge">No model</span>
+                        </div>
+                    </div>
+
+                    <!-- Output panels -->
+                    <div id="output-area" class="output-area">
+                        <div class="output-placeholder">
+                            Enter a prompt below to begin.
+                        </div>
+                    </div>
+
+                    <!-- Prompt input -->
+                    <div class="prompt-bar">
+                        <textarea id="prompt-input" 
+                                  placeholder="Enter your prompt..."
+                                  rows="3"
+                                  spellcheck="false"></textarea>
+                        <button id="btn-send" class="btn btn-primary" disabled>Run</button>
+                    </div>
+
+                    <!-- Metrics bar -->
+                    <div id="metrics-bar" class="metrics-bar" style="display: none;">
+                        <!-- Filled by JS after inference -->
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Navigation -->
+        <nav id="app-nav">
+            <button class="nav-btn active" data-view="setup">Setup</button>
+            <button class="nav-btn" data-view="model">Model</button>
+            <button class="nav-btn" data-view="chat">Chat</button>
+        </nav>
+    </div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
