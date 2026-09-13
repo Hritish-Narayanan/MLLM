@@ -38,6 +38,8 @@ class JsonRpcServer:
         try:
             if method == "detect_system":
                 result = self.controller.detect_system()
+            elif method == "get_hardware_monitor":
+                result = self.controller.get_hardware_monitor()
             elif method == "get_available_runtimes":
                 result = self.controller.get_available_runtimes_list()
             elif method == "get_strategies":
@@ -45,12 +47,25 @@ class JsonRpcServer:
             elif method == "select_runtime":
                 runtime_name = params.get("runtime_name", "ollama")
                 result = await self.controller.select_runtime(runtime_name)
+            elif method == "list_models":
+                result = self.controller.list_models()
+            elif method == "add_model_to_library":
+                model_id = params.get("model_id", "")
+                result = await self.controller.add_model_to_library(model_id)
+            elif method == "remove_model_from_library":
+                model_id = params.get("model_id", "")
+                delete_files = params.get("delete_files", False)
+                result = self.controller.remove_model_from_library(model_id, delete_files)
+            elif method == "analyze_model":
+                model_id = params.get("model_id", "")
+                result = self.controller.analyze_model(model_id)
+            elif method == "check_model_compatibility":
+                model_id = params.get("model_id", "")
+                runtime_name = params.get("runtime_name", "ollama")
+                result = self.controller.check_model_compatibility(model_id, runtime_name)
             elif method == "load_model":
                 model_id = params.get("model_id")
                 result = await self.controller.load_model(model_id)
-            elif method == "get_model_info":
-                model_id = params.get("model_id")
-                result = await self.controller.get_model_info(model_id)
             elif method == "setup_agents":
                 count = params.get("count", 1)
                 strategy = params.get("strategy", "single")
@@ -58,13 +73,34 @@ class JsonRpcServer:
             elif method == "run_prompt":
                 prompt = params.get("prompt", "")
                 strategy = params.get("strategy")
-                result = await self.controller.run_prompt(prompt, strategy)
-            elif method == "run_benchmark":
+                agent_count = params.get("agent_count")
+                temperature = params.get("temperature")
+                context_window = params.get("context_window")
+                result = await self.controller.run_prompt(
+                    prompt, strategy, agent_count, temperature, context_window
+                )
+            elif method == "run_baseline":
                 prompt = params.get("prompt", "")
-                strategy = params.get("strategy")
-                result = await self.controller.run_benchmark(prompt, strategy)
-            elif method == "get_benchmark_history":
-                result = self.controller.get_benchmark_history()
+                result = await self.controller.run_baseline(prompt)
+            elif method == "save_experiment":
+                data = params.get("experiment", {})
+                result = self.controller.save_experiment(data)
+            elif method == "list_experiments":
+                result = self.controller.list_experiments()
+            elif method == "get_experiment":
+                exp_id = params.get("id", "")
+                result = self.controller.get_experiment(exp_id)
+            elif method == "delete_experiment":
+                exp_id = params.get("id", "")
+                result = self.controller.delete_experiment(exp_id)
+            elif method == "get_available_datasets":
+                result = self.controller.get_available_datasets()
+            elif method == "run_benchmark_suite":
+                model_id = params.get("model_id", "google/gemma-4-E4B")
+                configs = params.get("configurations", ["single", "independent", "debate"])
+                dataset_id = params.get("dataset_id", "coding")
+                runs = params.get("runs_per_config", 1)
+                result = await self.controller.run_benchmark_suite(model_id, configs, dataset_id, runs)
             elif method == "shutdown":
                 await self.controller.shutdown()
                 result = {"status": "shutdown"}

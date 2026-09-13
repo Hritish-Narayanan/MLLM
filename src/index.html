@@ -3,126 +3,877 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MLLM — Local Multi-Agent Platform</title>
+    <title>Local AI Arena — Multi-Agent Inference Platform</title>
     <link rel="stylesheet" href="styles/main.css">
 </head>
 <body>
     <div id="app">
-        <!-- Header -->
+        <!-- Top App Header -->
         <header id="app-header">
             <div class="header-left">
-                <h1 class="app-title">MLLM</h1>
-                <span class="app-subtitle">Local Multi-Agent Platform</span>
+                <div class="logo-group">
+                    <span class="logo-badge">MLLM</span>
+                    <div class="title-meta">
+                        <h1 class="app-title">Local AI Arena</h1>
+                        <span class="app-subtitle">Multi-Agent Model Laboratory</span>
+                    </div>
+                </div>
             </div>
+            
+            <div class="header-center">
+                <div id="live-hardware-badge" class="hardware-badge" title="Live System Resource Utilization">
+                    <span class="hw-item"><span class="hw-dot"></span> CPU <strong id="hw-cpu">--%</strong></span>
+                    <span class="hw-sep">|</span>
+                    <span class="hw-item">RAM <strong id="hw-ram">--</strong></span>
+                    <span class="hw-sep">|</span>
+                    <span class="hw-item"><strong id="hw-gpu">GPU Active</strong></span>
+                </div>
+            </div>
+
             <div class="header-right">
                 <div id="runtime-indicator" class="status-indicator offline">
                     <span class="status-dot"></span>
-                    <span id="runtime-status-text">No runtime</span>
+                    <span id="runtime-status-text">Detecting...</span>
                 </div>
+                <button id="btn-header-settings" class="icon-btn" title="Settings">⚙</button>
             </div>
         </header>
 
-        <!-- Main Content -->
-        <main id="main-content">
-            <!-- Setup View (shown first) -->
-            <section id="view-setup" class="view active">
-                <div class="setup-container">
-                    <h2>System Check</h2>
-                    <div id="system-info" class="info-panel">
-                        <p class="info-loading">Detecting hardware...</p>
-                    </div>
+        <!-- Main Workspace -->
+        <div id="workspace">
+            <!-- Sidebar Navigation -->
+            <nav id="app-nav">
+                <div class="nav-section-title">PLATFORM</div>
+                <button class="nav-btn" data-view="home">
+                    <span class="nav-icon">⊞</span>
+                    <span class="nav-label">Home</span>
+                </button>
+                <button class="nav-btn active" data-view="models">
+                    <span class="nav-icon">❖</span>
+                    <span class="nav-label">Models</span>
+                    <span id="nav-model-count" class="nav-counter">1</span>
+                </button>
+                <button class="nav-btn" data-view="experiments">
+                    <span class="nav-icon">⚡</span>
+                    <span class="nav-label">Experiments</span>
+                </button>
+                <button class="nav-btn" data-view="benchmarks">
+                    <span class="nav-icon">📊</span>
+                    <span class="nav-label">Benchmarks</span>
+                </button>
+                <button class="nav-btn" data-view="history">
+                    <span class="nav-icon">⏱</span>
+                    <span class="nav-label">History</span>
+                </button>
 
-                    <h2>Select Runtime</h2>
-                    <div id="runtime-list" class="runtime-options">
-                        <!-- Populated by JS -->
-                    </div>
+                <div class="nav-spacer"></div>
 
-                    <div id="setup-actions" class="actions" style="display: none;">
-                        <button id="btn-connect" class="btn btn-primary" disabled>
-                            Connect to Runtime
-                        </button>
-                    </div>
+                <div class="nav-section-title">SYSTEM</div>
+                <button class="nav-btn" data-view="settings">
+                    <span class="nav-icon">⚙</span>
+                    <span class="nav-label">Settings</span>
+                </button>
+            </nav>
 
-                    <div id="setup-status" class="status-message" style="display: none;"></div>
+            <!-- Main Views Container -->
+            <main id="main-content">
+                <!-- 1. First Launch / Onboarding View -->
+                <section id="view-onboarding" class="view">
+                    <div class="onboarding-card">
+                        <div class="onboarding-hero">
+                            <span class="hero-chip">Local AI Arena</span>
+                            <h2>Run local AI models.<br>Create multi-agent experiments.<br>Measure the results.</h2>
+                            <p class="hero-desc">
+                                A standalone desktop laboratory for running local LLMs, coordinating independent agents,
+                                observing debates and critic cycles, and measuring whether collaboration improves real outcomes.
+                            </p>
+                        </div>
+                        <div class="onboarding-actions">
+                            <button id="btn-start-onboarding" class="btn btn-primary btn-lg">Get Started →</button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 2. System Check & Runtime Setup View -->
+                <section id="view-setup" class="view">
+                    <div class="page-container">
+                        <div class="page-header">
+                            <h2>First Launch & System Check</h2>
+                            <p class="subtitle">Inspecting your machine hardware and inference software.</p>
+                        </div>
+
+                        <div class="grid-2col">
+                            <!-- System Detection Card -->
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3>Your System</h3>
+                                    <span id="setup-sys-status" class="badge badge-success">Detected</span>
+                                </div>
+                                <div id="setup-system-summary" class="summary-list">
+                                    <div class="summary-item">
+                                        <span class="item-label">OS</span>
+                                        <span id="sys-os" class="item-val">Detecting...</span>
+                                    </div>
+                                    <div class="summary-item">
+                                        <span class="item-label">Memory</span>
+                                        <span id="sys-ram" class="item-val">Detecting...</span>
+                                    </div>
+                                    <div class="summary-item">
+                                        <span class="item-label">GPU</span>
+                                        <span id="sys-gpu" class="item-val">Detecting...</span>
+                                    </div>
+                                    <div class="summary-item">
+                                        <span class="item-label">Available Backends</span>
+                                        <span id="sys-backends" class="item-val">✓ Ollama  ✓ AirLLM</span>
+                                    </div>
+                                    <div class="summary-item highlight">
+                                        <span class="item-label">Recommended</span>
+                                        <span id="sys-recommended" class="item-val text-success">Ollama (GPU Acceleration)</span>
+                                    </div>
+                                </div>
+
+                                <details class="advanced-details">
+                                    <summary>View Advanced Hardware Details</summary>
+                                    <div id="setup-system-advanced" class="info-table-sm"></div>
+                                </details>
+                            </div>
+
+                            <!-- Runtime Selection Card -->
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3>How do you want to run models?</h3>
+                                    <span class="hint-text">You can change this anytime</span>
+                                </div>
+
+                                <div class="runtime-selector-group">
+                                    <label class="runtime-card selected" data-runtime="ollama">
+                                        <div class="runtime-card-top">
+                                            <input type="radio" name="setup-runtime" value="ollama" checked>
+                                            <strong class="runtime-title">Ollama</strong>
+                                            <span class="badge badge-primary">Recommended</span>
+                                        </div>
+                                        <p class="runtime-desc">Fast local inference with native GPU/Metal hardware acceleration.</p>
+                                        <div class="runtime-features">
+                                            <span>✓ GPU acceleration</span>
+                                            <span>✓ Native speed</span>
+                                            <span>✓ Easy management</span>
+                                        </div>
+                                    </label>
+
+                                    <label class="runtime-card" data-runtime="airllm">
+                                        <div class="runtime-card-top">
+                                            <input type="radio" name="setup-runtime" value="airllm">
+                                            <strong class="runtime-title">AirLLM</strong>
+                                        </div>
+                                        <p class="runtime-desc">Useful when model size exceeds physical GPU memory through layer streaming.</p>
+                                        <div class="runtime-features">
+                                            <span>✓ Low memory footprint</span>
+                                            <span>✓ Layer-wise execution</span>
+                                        </div>
+                                    </label>
+
+                                    <label class="runtime-card" data-runtime="automatic">
+                                        <div class="runtime-card-top">
+                                            <input type="radio" name="setup-runtime" value="automatic">
+                                            <strong class="runtime-title">Automatic</strong>
+                                        </div>
+                                        <p class="runtime-desc">Let the application dynamically choose the best runtime per model.</p>
+                                    </label>
+                                </div>
+
+                                <div class="card-footer">
+                                    <button id="btn-confirm-runtime" class="btn btn-primary btn-block">
+                                        Verify & Continue →
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 3. Home Screen (Local AI Arena) -->
+                <section id="view-home" class="view">
+                    <div class="page-container">
+                        <div class="home-hero">
+                            <div class="home-hero-text">
+                                <h2>Local AI Arena</h2>
+                                <p>Load local models, run multi-agent collaborations, and measure whether collective intelligence beats a single model.</p>
+                            </div>
+                            <div class="home-hero-actions">
+                                <button class="btn btn-primary" id="btn-home-create-exp">⚡ Create an Experiment →</button>
+                            </div>
+                        </div>
+
+                        <div class="home-sections-grid">
+                            <!-- Models Section -->
+                            <div class="home-section-card">
+                                <div class="section-card-header">
+                                    <div>
+                                        <h3>MODELS</h3>
+                                        <span class="section-desc">Active models ready for inference</span>
+                                    </div>
+                                    <button id="btn-home-add-model" class="btn btn-secondary btn-sm">+ Add Model</button>
+                                </div>
+
+                                <div id="home-models-list" class="model-cards-compact">
+                                    <!-- Populated by JS -->
+                                </div>
+                            </div>
+
+                            <!-- Experiment Section -->
+                            <div class="home-section-card">
+                                <div class="section-card-header">
+                                    <div>
+                                        <h3>MULTI-AGENT STRATEGIES</h3>
+                                        <span class="section-desc">Test baseline against collaboration</span>
+                                    </div>
+                                </div>
+
+                                <div class="strategy-quick-grid">
+                                    <div class="strat-pill" data-strategy="single">
+                                        <strong>1× Single</strong>
+                                        <span>Baseline</span>
+                                    </div>
+                                    <div class="strat-pill" data-strategy="independent">
+                                        <strong>2× Independent</strong>
+                                        <span>Side-by-side</span>
+                                    </div>
+                                    <div class="strat-pill active" data-strategy="debate">
+                                        <strong>2× Debate</strong>
+                                        <span>Critique & Judge</span>
+                                    </div>
+                                    <div class="strat-pill" data-strategy="solver_critic">
+                                        <strong>Solver → Critic</strong>
+                                        <span>Iterative revision</span>
+                                    </div>
+                                    <div class="strat-pill" data-strategy="majority_vote">
+                                        <strong>Majority Vote</strong>
+                                        <span>Consensus</span>
+                                    </div>
+                                    <div class="strat-pill" data-strategy="judge">
+                                        <strong>Judge Evaluator</strong>
+                                        <span>Scored selection</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 4. Model Library View -->
+                <section id="view-models" class="view active">
+                    <div class="page-container">
+                        <div class="page-header flex-between">
+                            <div>
+                                <h2>Models</h2>
+                                <p class="subtitle">Available local and Hugging Face models</p>
+                            </div>
+                            <button id="btn-open-add-model" class="btn btn-primary">+ Add Model</button>
+                        </div>
+
+                        <div id="models-grid" class="models-grid">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 5. Create Experiment View -->
+                <section id="view-experiments" class="view">
+                    <div class="page-container">
+                        <div class="page-header flex-between">
+                            <div>
+                                <h2>New Experiment</h2>
+                                <p class="subtitle">Configure multi-agent collaboration parameters</p>
+                            </div>
+                        </div>
+
+                        <div class="experiment-config-layout">
+                            <!-- Config Column -->
+                            <div class="card config-card">
+                                <div class="form-group">
+                                    <label for="exp-name">Experiment Name</label>
+                                    <input type="text" id="exp-name" value="Gemma Two-Agent Test" class="form-control">
+                                </div>
+
+                                <div class="grid-2col-sm">
+                                    <div class="form-group">
+                                        <label for="exp-model-select">Model</label>
+                                        <select id="exp-model-select" class="form-control">
+                                            <!-- Filled dynamically from model library -->
+                                        </select>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="exp-runtime-select">Runtime</label>
+                                        <select id="exp-runtime-select" class="form-control">
+                                            <option value="ollama" selected>Ollama (GPU)</option>
+                                            <option value="airllm">AirLLM</option>
+                                            <option value="automatic">Automatic</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="grid-2col-sm">
+                                    <div class="form-group">
+                                        <label for="exp-agent-count">Number of Agents</label>
+                                        <input type="number" id="exp-agent-count" min="1" max="6" value="2" class="form-control">
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="exp-strategy-select">Strategy</label>
+                                        <select id="exp-strategy-select" class="form-control">
+                                            <option value="single">Single (1× Baseline)</option>
+                                            <option value="independent">Independent</option>
+                                            <option value="solver_critic">Solver → Critic</option>
+                                            <option value="debate" selected>Debate</option>
+                                            <option value="majority_vote">Majority Vote</option>
+                                            <option value="judge">Judge</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- Dynamic Strategy Options -->
+                                <div id="strategy-options-panel" class="strategy-options-panel">
+                                    <div id="opt-debate-rounds" class="form-group">
+                                        <label for="exp-debate-rounds">Debate Rounds</label>
+                                        <input type="number" id="exp-debate-rounds" min="1" max="4" value="2" class="form-control">
+                                    </div>
+
+                                    <div id="opt-judge-model" class="form-group">
+                                        <label for="exp-judge-model">Judge Model</label>
+                                        <select id="exp-judge-model" class="form-control">
+                                            <option value="same" selected>Same Model</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="exp-prompt-input">Task / Problem Prompt</label>
+                                    <textarea id="exp-prompt-input" rows="4" class="form-control prompt-textarea"
+                                              placeholder="Give the agents a problem to solve...">Write a Python function that finds the longest palindromic substring of a string. Include tests and explain the complexity.</textarea>
+                                    
+                                    <div class="prompt-quick-tags">
+                                        <span class="tag-title">Quick prompts:</span>
+                                        <button class="chip-btn" data-prompt="Write a Python function that finds the longest palindromic substring of a string. Include tests and explain the complexity.">Palindromic Substring</button>
+                                        <button class="chip-btn" data-prompt="Implement an LRU (Least Recently Used) Cache class in Python with get and put in O(1) time complexity. Include unit tests.">LRU Cache O(1)</button>
+                                        <button class="chip-btn" data-prompt="On an island, Knights always tell the truth and Knaves always lie. A says: 'All of us are knaves.' B says: 'Exactly one of us is a knight.' Determine what A, B, and C are step-by-step.">Knights & Knaves</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Summary & Resource Estimates Column -->
+                            <div class="card summary-card">
+                                <div class="card-header">
+                                    <h3>Experiment Summary</h3>
+                                </div>
+
+                                <div class="summary-list">
+                                    <div class="summary-item">
+                                        <span class="item-label">Model</span>
+                                        <strong id="sum-model">Gemma 4 E4B</strong>
+                                    </div>
+                                    <div class="summary-item">
+                                        <span class="item-label">Runtime</span>
+                                        <span id="sum-runtime">Ollama</span>
+                                    </div>
+                                    <div class="summary-item">
+                                        <span class="item-label">Agents</span>
+                                        <span id="sum-agents">2</span>
+                                    </div>
+                                    <div class="summary-item">
+                                        <span class="item-label">Strategy</span>
+                                        <strong id="sum-strategy" class="text-accent">Debate</strong>
+                                    </div>
+                                    <div class="summary-item">
+                                        <span class="item-label">Rounds</span>
+                                        <span id="sum-rounds">2</span>
+                                    </div>
+                                    <div class="summary-item">
+                                        <span class="item-label">Judge</span>
+                                        <span id="sum-judge">Gemma 4 E4B</span>
+                                    </div>
+                                    <div class="summary-item highlight">
+                                        <span class="item-label">Expected Model Calls</span>
+                                        <strong id="sum-calls">5</strong>
+                                    </div>
+                                </div>
+
+                                <div class="estimate-callout">
+                                    <div class="est-title">Estimated Resources (Estimate Only)</div>
+                                    <div class="est-grid">
+                                        <div>RAM: <strong id="est-ram">~6.8 GB</strong></div>
+                                        <div>VRAM: <strong id="est-vram">Unified Metal</strong></div>
+                                    </div>
+                                </div>
+
+                                <div class="card-footer">
+                                    <button id="btn-run-experiment" class="btn btn-primary btn-block btn-lg">
+                                        Start Experiment →
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 6. Running Experiment View -->
+                <section id="view-running" class="view">
+                    <div class="page-container running-container">
+                        <div class="running-card card">
+                            <div class="running-header">
+                                <div>
+                                    <h2 id="running-exp-title">Running Gemma Two-Agent Test</h2>
+                                    <p id="running-exp-sub" class="subtitle">Strategy: Debate • Model: Gemma 4 E4B</p>
+                                </div>
+                                <button id="btn-cancel-exp" class="btn btn-danger btn-sm">Cancel Experiment</button>
+                            </div>
+
+                            <!-- Live Stages Progress -->
+                            <div class="execution-pipeline">
+                                <div id="stage-prep" class="pipe-step done">
+                                    <div class="step-dot">✓</div>
+                                    <div class="step-label">Runtime Ready & Model Loaded</div>
+                                </div>
+                                <div id="stage-agents" class="pipe-step active">
+                                    <div class="step-dot"><span class="spinner-sm"></span></div>
+                                    <div class="step-label" id="stage-agents-text">Agents Generating Initial Solutions...</div>
+                                </div>
+                                <div id="stage-debate" class="pipe-step pending">
+                                    <div class="step-dot">3</div>
+                                    <div class="step-label">Critique & Debate Rounds</div>
+                                </div>
+                                <div id="stage-judge" class="pipe-step pending">
+                                    <div class="step-dot">4</div>
+                                    <div class="step-label">Judge Synthesis & Final Evaluation</div>
+                                </div>
+                            </div>
+
+                            <!-- Live Agents Cards -->
+                            <div class="live-agents-grid">
+                                <div class="agent-live-card">
+                                    <div class="agent-live-header">
+                                        <span>Agent 1 (Debater A)</span>
+                                        <span id="agent1-live-status" class="badge badge-warning">Thinking...</span>
+                                    </div>
+                                    <div class="progress-bar-container">
+                                        <div id="agent1-progress" class="progress-bar animated" style="width: 75%;"></div>
+                                    </div>
+                                </div>
+
+                                <div class="agent-live-card">
+                                    <div class="agent-live-header">
+                                        <span>Agent 2 (Debater B)</span>
+                                        <span id="agent2-live-status" class="badge badge-warning">Thinking...</span>
+                                    </div>
+                                    <div class="progress-bar-container">
+                                        <div id="agent2-progress" class="progress-bar animated" style="width: 60%;"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Live Hardware Footprint -->
+                            <div class="live-hw-monitor-strip">
+                                <span>Live Hardware Footprint:</span>
+                                <span>CPU: <strong id="live-hw-cpu">42%</strong></span>
+                                <span>RAM: <strong id="live-hw-ram">18.4 / 32 GB</strong></span>
+                                <span>GPU: <strong id="live-hw-gpu">Apple GPU (Metal)</strong></span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 7. Experiment Results View -->
+                <section id="view-results" class="view">
+                    <div class="page-container">
+                        <div class="page-header flex-between">
+                            <div>
+                                <span class="badge badge-success">✓ EXPERIMENT COMPLETE</span>
+                                <h2 id="res-exp-title">Gemma Two-Agent Test</h2>
+                                <p id="res-exp-meta" class="subtitle">Strategy: 2-Agent Debate • Model: google/gemma-4-E4B</p>
+                            </div>
+                            <div class="results-actions">
+                                <button id="btn-save-experiment" class="btn btn-secondary">Save Experiment</button>
+                                <button id="btn-new-experiment" class="btn btn-primary">+ New Experiment</button>
+                            </div>
+                        </div>
+
+                        <!-- Real Measured Performance Banner -->
+                        <div class="metrics-banner">
+                            <div class="metric-card">
+                                <span class="m-label">Total Time</span>
+                                <strong id="res-m-time" class="m-val text-accent">--</strong>
+                            </div>
+                            <div class="metric-card">
+                                <span class="m-label">Model Calls</span>
+                                <strong id="res-m-calls" class="m-val">--</strong>
+                            </div>
+                            <div class="metric-card">
+                                <span class="m-label">Total Tokens</span>
+                                <strong id="res-m-tokens" class="m-val">--</strong>
+                            </div>
+                            <div class="metric-card">
+                                <span class="m-label">Tokens / Sec</span>
+                                <strong id="res-m-tps" class="m-val">--</strong>
+                            </div>
+                            <div class="metric-card">
+                                <span class="m-label">Peak Memory</span>
+                                <strong id="res-m-ram" class="m-val">--</strong>
+                            </div>
+                        </div>
+
+                        <!-- Prioritized Final Answer -->
+                        <div class="card result-final-card">
+                            <div class="card-header flex-between">
+                                <div class="flex-align">
+                                    <span class="badge badge-primary">FINAL ANSWER</span>
+                                    <span class="sub-badge" id="res-final-badge">Evaluated & Verified</span>
+                                </div>
+                                <button id="btn-copy-final" class="btn btn-sm btn-outline">Copy Answer</button>
+                            </div>
+                            <div id="res-final-answer" class="content-body formatted-text">
+                                <!-- Final answer rendered here -->
+                            </div>
+                        </div>
+
+                        <!-- Individual Agents Outputs Accordion -->
+                        <div class="results-accordion">
+                            <details class="acc-item" open>
+                                <summary class="acc-header">
+                                    <span>Individual Agent Solutions</span>
+                                    <span class="acc-meta" id="res-agents-count">2 agents</span>
+                                </summary>
+                                <div id="res-agents-container" class="acc-body grid-2col">
+                                    <!-- Agent cards populated here -->
+                                </div>
+                            </details>
+
+                            <details class="acc-item" id="acc-debate-rounds">
+                                <summary class="acc-header">
+                                    <span>Debate & Critique Transcripts</span>
+                                    <span class="acc-meta">Round by Round</span>
+                                </summary>
+                                <div id="res-debate-container" class="acc-body">
+                                    <!-- Debate rounds -->
+                                </div>
+                            </details>
+                        </div>
+
+                        <!-- The "Wow" Baseline Comparison Card -->
+                        <div class="card baseline-card">
+                            <div class="card-header flex-between">
+                                <div>
+                                    <h3>Compare With Single Agent Baseline</h3>
+                                    <p class="subtitle">Run the exact same prompt with 1 × Model to measure if collaboration improved results.</p>
+                                </div>
+                                <button id="btn-run-baseline" class="btn btn-primary">Run Baseline (1 × Model)</button>
+                            </div>
+
+                            <div id="baseline-comparison-table" class="comparison-table-container" style="display: none;">
+                                <table class="comparison-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Metric</th>
+                                            <th>1 × Model (Single)</th>
+                                            <th id="comp-strat-header">2-Agent Collaboration</th>
+                                            <th>Difference</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="comp-tbody">
+                                        <!-- Populated when baseline is run -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 8. Benchmark Section -->
+                <section id="view-benchmarks" class="view">
+                    <div class="page-container">
+                        <div class="page-header flex-between">
+                            <div>
+                                <h2>Benchmarks</h2>
+                                <p class="subtitle">Objective research suite comparing multi-agent architectures on standardized datasets</p>
+                            </div>
+                        </div>
+
+                        <div class="grid-2col">
+                            <!-- Benchmark Setup Card -->
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3>Configure Benchmark Suite</h3>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="bm-model-select">Model</label>
+                                    <select id="bm-model-select" class="form-control"></select>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Configurations to Compare</label>
+                                    <div class="checkbox-grid">
+                                        <label class="cb-label"><input type="checkbox" name="bm-config" value="single" checked> 1 Agent — Single</label>
+                                        <label class="cb-label"><input type="checkbox" name="bm-config" value="independent" checked> 2 Agents — Independent</label>
+                                        <label class="cb-label"><input type="checkbox" name="bm-config" value="debate" checked> 2 Agents — Debate</label>
+                                        <label class="cb-label"><input type="checkbox" name="bm-config" value="solver_critic" checked> 2 Agents — Solver/Critic</label>
+                                        <label class="cb-label"><input type="checkbox" name="bm-config" value="majority_vote" checked> 3 Agents — Majority Vote</label>
+                                    </div>
+                                </div>
+
+                                <div class="grid-2col-sm">
+                                    <div class="form-group">
+                                        <label for="bm-dataset-select">Benchmark Dataset</label>
+                                        <select id="bm-dataset-select" class="form-control">
+                                            <option value="coding" selected>Algorithmic & Coding (2 tasks)</option>
+                                            <option value="reasoning">Logical & Constraint Reasoning (2 tasks)</option>
+                                            <option value="math">Mathematical Deduction (1 task)</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="bm-runs-count">Runs Per Configuration</label>
+                                        <input type="number" id="bm-runs-count" min="1" max="5" value="1" class="form-control">
+                                    </div>
+                                </div>
+
+                                <div class="card-footer">
+                                    <button id="btn-start-benchmark" class="btn btn-primary btn-block">
+                                        Start Benchmark Run →
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Live Benchmark Progress & Overview -->
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3>Objective Measurement Principle</h3>
+                                </div>
+                                <div class="info-box">
+                                    <p>The platform executes every configuration against identical prompt datasets. Every recorded score, token count, and latency metric reflects real system execution without fabrication.</p>
+                                </div>
+                                <div id="bm-running-indicator" style="display: none;" class="bm-running-indicator">
+                                    <span class="spinner"></span>
+                                    <span id="bm-status-msg">Running benchmark suite...</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Benchmark Results Table -->
+                        <div id="bm-results-card" class="card mt-4" style="display: none;">
+                            <div class="card-header flex-between">
+                                <h3>Benchmark Results</h3>
+                                <span id="bm-res-meta" class="badge badge-primary">Coding Dataset</span>
+                            </div>
+
+                            <div class="table-container">
+                                <table class="benchmark-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Configuration</th>
+                                            <th>Accuracy / Score</th>
+                                            <th>Latency / Time</th>
+                                            <th>Tokens</th>
+                                            <th>Model Calls</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="bm-tbody"></tbody>
+                                </table>
+                            </div>
+
+                            <!-- Visual Comparison Bars -->
+                            <div class="bm-visual-comparison">
+                                <h4>Objective Comparison</h4>
+                                <div class="bm-bar-section">
+                                    <div class="bar-header"><span>QUALITY (Higher is better)</span></div>
+                                    <div id="bm-bar-quality" class="bm-bars-container"></div>
+                                </div>
+                                <div class="bm-bar-section">
+                                    <div class="bar-header"><span>RESOURCE COST / TOKENS (Lower is more efficient)</span></div>
+                                    <div id="bm-bar-cost" class="bm-bars-container"></div>
+                                </div>
+                                <div class="bm-bar-section">
+                                    <div class="bar-header"><span>LATENCY (Lower is faster)</span></div>
+                                    <div id="bm-bar-latency" class="bm-bars-container"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 9. History View -->
+                <section id="view-history" class="view">
+                    <div class="page-container">
+                        <div class="page-header flex-between">
+                            <div>
+                                <h2>Experiment History</h2>
+                                <p class="subtitle">Reproduce and review past multi-agent experiments and benchmarks</p>
+                            </div>
+                        </div>
+
+                        <div id="history-list" class="history-list">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 10. Settings View -->
+                <section id="view-settings" class="view">
+                    <div class="page-container">
+                        <div class="page-header">
+                            <h2>Settings & Runtimes</h2>
+                            <p class="subtitle">Configure inference engines and inspect system health</p>
+                        </div>
+
+                        <div class="grid-2col">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3>Inference Engine Status</h3>
+                                </div>
+                                <div class="summary-list">
+                                    <div class="summary-item">
+                                        <span class="item-label">Default Runtime</span>
+                                        <select id="settings-default-runtime" class="form-control-sm">
+                                            <option value="ollama">Ollama</option>
+                                            <option value="airllm">AirLLM</option>
+                                            <option value="automatic">Automatic</option>
+                                        </select>
+                                    </div>
+                                    <div class="summary-item">
+                                        <span class="item-label">Ollama Engine</span>
+                                        <span id="settings-ollama-status" class="badge badge-success">✓ Ready</span>
+                                    </div>
+                                    <div class="summary-item">
+                                        <span class="item-label">AirLLM Engine</span>
+                                        <span id="settings-airllm-status" class="badge badge-secondary">○ Available</span>
+                                    </div>
+                                    <div class="summary-item">
+                                        <span class="item-label">Docker Support</span>
+                                        <span id="settings-docker-status" class="badge badge-secondary">Checking...</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3>Hardware Monitor</h3>
+                                </div>
+                                <div class="summary-list">
+                                    <div class="summary-item">
+                                        <span class="item-label">CPU Load</span>
+                                        <span id="settings-cpu-load">--%</span>
+                                    </div>
+                                    <div class="summary-item">
+                                        <span class="item-label">RAM Utilization</span>
+                                        <span id="settings-ram-load">--</span>
+                                    </div>
+                                    <div class="summary-item">
+                                        <span class="item-label">GPU Acceleration</span>
+                                        <span id="settings-gpu-load">Active</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </main>
+        </div>
+
+        <!-- Add Model Modal -->
+        <div id="modal-add-model" class="modal-backdrop" style="display: none;">
+            <div class="modal-card">
+                <div class="modal-header flex-between">
+                    <h3>Add Model</h3>
+                    <button id="btn-close-modal-add" class="icon-btn">✕</button>
                 </div>
-            </section>
 
-            <!-- Model View -->
-            <section id="view-model" class="view">
-                <div class="model-container">
-                    <h2>Load Model</h2>
-                    <div class="input-group">
-                        <label for="model-input">Model identifier (HF Repo, Local Folder, or Tag)</label>
-                        <input type="text" id="model-input" 
-                               placeholder="e.g. google/gemma-4-E4B, gemma3:4b, or /path/to/weights"
-                               spellcheck="false">
-                        <span class="input-hint">Hugging Face ID (e.g. google/gemma-4-E4B), Ollama tag (e.g. gemma3:4b), or local directory</span>
-                    </div>
-                    <div class="actions">
-                        <button id="btn-load-model" class="btn btn-primary">Load Model</button>
-                    </div>
-                    <div id="model-status" class="status-message" style="display: none;"></div>
-                    <div id="model-info-panel" class="info-panel" style="display: none;"></div>
-                </div>
-            </section>
+                <div class="modal-body">
+                    <!-- Step 1: Input -->
+                    <div id="add-model-step-1">
+                        <div class="tab-buttons">
+                            <button class="tab-btn active" data-tab="hf">Hugging Face Model</button>
+                            <button class="tab-btn" data-tab="local">Local Model Folder</button>
+                        </div>
 
-            <!-- Chat View -->
-            <section id="view-chat" class="view">
-                <div class="chat-container">
-                    <!-- Agent config bar -->
-                    <div class="chat-toolbar">
-                        <div class="toolbar-group">
-                            <label for="agent-count">Agents</label>
-                            <select id="agent-count">
-                                <option value="1" selected>1</option>
-                                <option value="2">2</option>
-                                <option value="3">3</option>
-                            </select>
+                        <div id="tab-hf-content" class="tab-pane active">
+                            <div class="form-group mt-3">
+                                <label for="input-hf-model">Model ID</label>
+                                <input type="text" id="input-hf-model" value="google/gemma-4-E4B" class="form-control" placeholder="e.g. google/gemma-4-E4B, meta-llama/Llama-3.2-3B">
+                                <span class="input-hint">Enter the Hugging Face repo ID or model tag</span>
+                            </div>
                         </div>
-                        <div class="toolbar-group">
-                            <label for="strategy-select">Strategy</label>
-                            <select id="strategy-select">
-                                <option value="single" selected>Single</option>
-                                <option value="independent">Independent</option>
-                                <option value="solver_critic">Solver → Critic</option>
-                                <option value="debate">Debate</option>
-                            </select>
+
+                        <div id="tab-local-content" class="tab-pane">
+                            <div class="form-group mt-3">
+                                <label for="input-local-folder">Local Path</label>
+                                <input type="text" id="input-local-folder" class="form-control" placeholder="/path/to/weights">
+                                <span class="input-hint">Path to folder containing Safetensors or GGUF files</span>
+                            </div>
                         </div>
-                        <div class="toolbar-group">
-                            <span id="model-badge" class="badge">No model</span>
+
+                        <div class="modal-actions">
+                            <button id="btn-analyze-model" class="btn btn-primary">Analyze Model →</button>
                         </div>
                     </div>
 
-                    <!-- Output panels -->
-                    <div id="output-area" class="output-area">
-                        <div class="output-placeholder">
-                            Enter a prompt below to begin.
+                    <!-- Step 2: Analyzing & Compatibility -->
+                    <div id="add-model-step-2" style="display: none;">
+                        <div id="model-analysis-loading" class="text-center py-4">
+                            <span class="spinner"></span>
+                            <p>Analyzing model architecture and hardware compatibility...</p>
                         </div>
-                    </div>
 
-                    <!-- Prompt input -->
-                    <div class="prompt-bar">
-                        <textarea id="prompt-input" 
-                                  placeholder="Enter your prompt..."
-                                  rows="3"
-                                  spellcheck="false"></textarea>
-                        <button id="btn-send" class="btn btn-primary" disabled>Run</button>
-                    </div>
+                        <div id="model-analysis-results" style="display: none;">
+                            <div class="info-table-sm mb-3" id="analysis-specs-table"></div>
 
-                    <!-- Metrics bar -->
-                    <div id="metrics-bar" class="metrics-bar" style="display: none;">
-                        <!-- Filled by JS after inference -->
+                            <div class="card compatibility-card" id="compat-card">
+                                <div class="card-header">
+                                    <h4 id="compat-title">Can this model run?</h4>
+                                    <span id="compat-badge" class="badge badge-success">✓ Compatible</span>
+                                </div>
+                                <div class="compat-details">
+                                    <p id="compat-reason"></p>
+                                    <p id="compat-rec" class="text-muted"></p>
+                                </div>
+                            </div>
+
+                            <div class="modal-actions mt-3">
+                                <button id="btn-confirm-add-model" class="btn btn-primary">Add to Library & Continue</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </section>
-        </main>
+            </div>
+        </div>
 
-        <!-- Navigation -->
-        <nav id="app-nav">
-            <button class="nav-btn active" data-view="setup">Setup</button>
-            <button class="nav-btn" data-view="model">Model</button>
-            <button class="nav-btn" data-view="chat">Chat</button>
-        </nav>
+        <!-- Failure / Error Modal -->
+        <div id="modal-error" class="modal-backdrop" style="display: none;">
+            <div class="modal-card">
+                <div class="modal-header">
+                    <h3 class="text-danger">Experiment Stopped</h3>
+                    <button id="btn-close-error" class="icon-btn">✕</button>
+                </div>
+                <div class="modal-body">
+                    <p><strong>Reason:</strong> <span id="err-reason">Insufficient memory</span></p>
+                    <p><strong>What happened:</strong> <span id="err-what">The selected configuration requires more memory than is currently available.</span></p>
+                    <div class="err-try-box">
+                        <strong>Try:</strong>
+                        <ul id="err-suggestions">
+                            <li>Reduce agent count</li>
+                            <li>Use a smaller model</li>
+                            <li>Switch runtime</li>
+                            <li>Reduce context</li>
+                        </ul>
+                    </div>
+                    <details class="mt-3">
+                        <summary>View Technical Details</summary>
+                        <pre id="err-technical" class="code-block"></pre>
+                    </details>
+                </div>
+                <div class="modal-actions">
+                    <button id="btn-dismiss-error" class="btn btn-secondary">Close</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="js/app.js"></script>

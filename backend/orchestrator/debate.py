@@ -112,17 +112,32 @@ class DebateStrategy(StrategyBase):
 
             current_answers = new_answers
 
-        elapsed = time.monotonic() - start
+        # Final Judge step to evaluate debate and determine final answer
+        judge_prompt = (
+            f"Original question: \"{prompt}\"\n\n"
+            f"The participants debated and presented the following final answers:\n\n"
+            + "\n\n".join([f"--- {a.name} ---\n{current_answers.get(a.id, '')}" for a in agents]) + "\n\n"
+            f"As an impartial judge, review the debate and the final arguments. "
+            f"Provide your evaluation and state the final definitive answer."
+        )
 
-        # Final answer is the last response from the first agent
-        final_answer = current_answers.get(agents[0].id, "")
+        judge_agent = manager.create_agent(
+            name="Judge",
+            role=AgentRole.JUDGE,
+            system_prompt="You are an impartial judge evaluating a structured debate. Summarize the conclusion and state the final definitive answer.",
+        )
+        judge_result = await manager.run_agent(judge_agent, judge_prompt, params)
+        all_results.append(judge_result)
+        total_calls += 1
+
+        elapsed = time.monotonic() - start
 
         return OrchestrationResult(
             strategy=self.name,
             agent_results=all_results,
-            final_answer=final_answer,
+            final_answer=judge_result.text,
             total_time_seconds=elapsed,
             total_model_calls=total_calls,
             rounds=self._rounds + 1,  # +1 for initial round
-            metadata={"debate_rounds": self._rounds},
+            metadata={"debate_rounds": self._rounds, "has_judge": True},
         )

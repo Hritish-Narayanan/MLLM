@@ -234,3 +234,59 @@ def format_bytes(size_bytes: int) -> str:
             return f"{size_bytes:.1f} {unit}"
         size_bytes /= 1024  # type: ignore
     return f"{size_bytes:.1f} PB"
+
+
+def get_live_hardware_monitor() -> dict:
+    """Get instantaneous CPU, RAM, and GPU resource utilization."""
+    try:
+        cpu_pct = psutil.cpu_percent(interval=None)
+        mem = psutil.virtual_memory()
+        
+        data = {
+            "cpu_percent": round(cpu_pct, 1),
+            "ram_used": format_bytes(mem.used),
+            "ram_total": format_bytes(mem.total),
+            "ram_percent": round(mem.percent, 1),
+            "gpu_name": "Integrated / Unified",
+            "gpu_percent": None,
+            "vram_used": None,
+            "vram_total": None,
+        }
+
+        # Check for Apple Silicon GPU
+        if platform.system() == "Darwin" and platform.machine() == "arm64":
+            data["gpu_name"] = "Apple GPU (Unified Memory)"
+            data["vram_used"] = format_bytes(mem.used)
+            data["vram_total"] = format_bytes(mem.total)
+        else:
+            # Check for NVIDIA GPU
+            try:
+                result = subprocess.run(
+                    [
+                        "nvidia-smi",
+                        "--query-gpu=utilization.gpu,memory.used,memory.total,name",
+                        "--format=csv,noheader,nounits",
+                    ],
+                    capture_output=True, text=True, timeout=2,
+                )
+                if result.returncode == 0:
+                    parts = result.stdout.strip().split("\n")[0].split(",")
+                    if len(parts) >= 4:
+                        data["gpu_percent"] = float(parts[0].strip())
+                        data["vram_used"] = f"{float(parts[1].strip()):.1f} MB"
+                        data["vram_total"] = f"{float(parts[2].strip()):.1f} MB"
+                        data["gpu_name"] = parts[3].strip()
+            except Exception:
+                pass
+
+        return data
+    except Exception as e:
+        return {
+            "cpu_percent": 0.0,
+            "ram_used": "N/A",
+            "ram_total": "N/A",
+            "ram_percent": 0.0,
+            "gpu_name": "Unknown",
+            "error": str(e),
+        }
+
