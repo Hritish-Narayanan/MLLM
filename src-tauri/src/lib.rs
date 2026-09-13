@@ -1,31 +1,36 @@
 use serde_json::Value;
 use std::io::{BufRead, BufReader, Write};
-use std::process::{Child, Command, Stdio};
+use std::process::{Child, ChildStdin, ChildStdout, Command, Stdio};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Mutex;
 use tauri::State;
 
+struct ActiveBackend {
+    _child: Child,
+    stdin: ChildStdin,
+    reader: BufReader<ChildStdout>,
+}
+
 pub struct BackendState {
-    pub process: Mutex<Option<Child>>,
-    pub counter: AtomicU64,
+    backend: Mutex<Option<ActiveBackend>>,
+    counter: AtomicU64,
 }
 
 impl BackendState {
     pub fn new() -> Self {
         Self {
-            process: Mutex::new(None),
+            backend: Mutex::new(None),
             counter: AtomicU64::new(1),
         }
     }
 
     pub fn ensure_started(&self) -> Result<(), String> {
-        let mut proc_guard = self.process.lock().map_err(|e| e.to_string())?;
-        if proc_guard.is_none() {
-            // 1. Check if bundled standalone sidecar binary exists alongside app or in src-tauri/binaries
+        let mut guard = self.backend.lock().map_err(|e| e.to_string())?;
+        if guard.is_none() {
             let current_exe_dir = std::env::current_exe()
                 .ok()
                 .and_then(|p| p.parent().map(|d| d.to_path_buf()));
-            
+
             let host_target = if cfg!(target_os = "windows") {
                 "x86_64-pc-windows-msvc"
             } else if cfg!(target_os = "linux") {
@@ -37,18 +42,28 @@ impl BackendState {
             };
 
             let binary_ext = if cfg!(target_os = "windows") { ".exe" } else { "" };
-            let sidecar_name = format!("mllm-backend-{}{}", host_target, binary_ext);
+            let sidecar_target = format!("mllm-backend-{}{}", host_target, binary_ext);
+            let sidecar_simple = format!("mllm-backend{}", binary_ext);
 
-            let candidate_sidecars = vec![
-                current_exe_dir.as_ref().map(|d| d.join(&sidecar_name)),
-                current_exe_dir.as_ref().map(|d| d.join("binaries").join(&sidecar_name)),
-                current_exe_dir.as_ref().map(|d| d.join("../Resources/binaries").join(&sidecar_name)),
-                std::env::current_dir().ok().map(|d| d.join("src-tauri/binaries").join(&sidecar_name)),
-                std::env::current_dir().ok().map(|d| d.join("binaries").join(&sidecar_name)),
-            ];
+            // Comprehensive candidate locations
+            let mut candidates = Vec::new();
+            if let Some(ref d) = current_exe_dir {
+                candidates.push(d.join(&sidecar_simple));
+                candidates.push(d.join(&sidecar_target));
+                candidates.push(d.join("binaries").join(&sidecar_simple));
+                candidates.push(d.join("binaries").join(&sidecar_target));
+                candidates.push(d.join("../Resources/binaries").join(&sidecar_simple));
+                candidates.push(d.join("../Resources/binaries").join(&sidecar_target));
+            }
+            if let Ok(cur) = std::env::current_dir() {
+                candidates.push(cur.join("src-tauri/binaries").join(&sidecar_simple));
+                candidates.push(cur.join("src-tauri/binaries").join(&sidecar_target));
+                candidates.push(cur.join("binaries").join(&sidecar_simple));
+                candidates.push(cur.join("binaries").join(&sidecar_target));
+            }
 
             let mut sidecar_cmd = None;
-            for candidate in candidate_sidecars.into_iter().flatten() {
+            for candidate in candidates {
                 if candidate.exists() {
                     sidecar_cmd = Some(Command::new(candidate));
                     break;
@@ -60,20 +75,23 @@ impl BackendState {
                     .stdout(Stdio::piped())
                     .stderr(Stdio::inherit())
                     .spawn()
-                    .map_err(|e| format!("Failed to spawn bundled sidecar: {}", e))?
+                    .map_err(|e| format!("Failed to spawn bundled sidecar binary: {}", e))?
             } else {
                 // Fallback to local python venv
-                let py_path = std::env::current_dir()
-                    .map(|p| p.join(".venv/bin/python"))
-                    .unwrap_or_else(|_| std::path::PathBuf::from(".venv/bin/python"));
+                let py_candidates = vec![
+                    std::env::current_dir().ok().map(|p| p.join(".venv/bin/python")),
+                    std::env::current_dir().ok().map(|p| p.join(".venv/Scripts/python.exe")),
+                ];
 
-                let python_bin = if py_path.exists() {
-                    py_path.to_string_lossy().to_string()
-                } else {
-                    "python3".to_string()
-                };
+                let mut py_path = "python3".to_string();
+                for cand in py_candidates.into_iter().flatten() {
+                    if cand.exists() {
+                        py_path = cand.to_string_lossy().to_string();
+                        break;
+                    }
+                }
 
-                Command::new(&python_bin)
+                Command::new(&py_path)
                     .arg("backend/ipc/server.py")
                     .stdin(Stdio::piped())
                     .stdout(Stdio::piped())
@@ -82,7 +100,15 @@ impl BackendState {
                     .map_err(|e| format!("Failed to spawn Python backend: {}", e))?
             };
 
-            *proc_guard = Some(child);
+            let stdin = child.stdin.take().ok_or("Failed to open child stdin")?;
+            let stdout = child.stdout.take().ok_or("Failed to open child stdout")?;
+            let reader = BufReader::new(stdout);
+
+            *guard = Some(ActiveBackend {
+                _child: child,
+                stdin,
+                reader,
+            });
         }
         Ok(())
     }
@@ -90,8 +116,8 @@ impl BackendState {
     pub fn call_rpc(&self, method: &str, params: Value) -> Result<Value, String> {
         self.ensure_started()?;
 
-        let mut proc_guard = self.process.lock().map_err(|e| e.to_string())?;
-        let child = proc_guard.as_mut().ok_or("Backend process not running")?;
+        let mut guard = self.backend.lock().map_err(|e| e.to_string())?;
+        let active = guard.as_mut().ok_or("Backend process not running")?;
 
         let id = self.counter.fetch_add(1, Ordering::SeqCst);
         let req = serde_json::json!({
@@ -101,15 +127,13 @@ impl BackendState {
             "params": params,
         });
 
-        let mut stdin = child.stdin.as_mut().ok_or("Cannot get child stdin")?;
         let req_str = req.to_string();
-        writeln!(stdin, "{}", req_str).map_err(|e| format!("Failed to write to stdin: {}", e))?;
-        stdin.flush().map_err(|e| format!("Failed to flush stdin: {}", e))?;
+        writeln!(active.stdin, "{}", req_str)
+            .map_err(|e| format!("Failed to write to stdin: {}", e))?;
+        active.stdin.flush().map_err(|e| format!("Failed to flush stdin: {}", e))?;
 
-        let stdout = child.stdout.as_mut().ok_or("Cannot get child stdout")?;
-        let mut reader = BufReader::new(stdout);
         let mut line = String::new();
-        reader
+        active.reader
             .read_line(&mut line)
             .map_err(|e| format!("Failed to read line from stdout: {}", e))?;
 
